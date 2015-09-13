@@ -13,12 +13,6 @@ categories:
 twitter_text: 'Writing an x86 emulator in JavaScript'
 ---
 
-*Disclaimer: this is not a proper tutorial, I have no prior experience with
-emulators, the sample code is very simplistic, it doesn't emulate the actual
-CPU and is far from optimal.*
-
----
-
 As someone that doesn't have a CS background I've always wanted to properly
 understand how things work at the lower level, and had decided to put more
 effort into it.
@@ -51,8 +45,8 @@ me some time to prove that I wasn't crazy, that I had a reasonable idea of how
 hard it'd be to write a proper emulator, and to explain that I only wanted to
 write it for `fun` and support only very basic use cases.
 
-I got one coworker to work with me and our initial goal was to run the simplest
-x86 program possible: just exit with code `0`:
+I got a coworker, Uri Baghin, to work with me and our initial goal was to run
+the simplest x86 program possible: just exit with code `0`:
 
 {% highlight asm %}
 # program.s
@@ -184,10 +178,10 @@ files as described: the loader (`mach-o.js`), the opcodes' logic (`x86.js`) and
 the `index.html` that works as the entry point. The code can execute basic
 assembly and C programs.
 
-*NOTE:* it cannot execute libc, so C programs have to be compiled with
-`-static -nostdlib` and provide a custom assembly boostrap.
+*NOTE: it cannot execute libc, so C programs have to be compiled with
+`-static -nostdlib` and provide a custom assembly boostrap.*
 
-As mentioned above the code is super simple, was completely written in a
+Please keep in mind that the code is super simple, was completely written in a
 hackathon, so there wasn't much effort into making it very readable (or very
 good for that matter) and we didn't iterate any further on that.
 
