@@ -5,7 +5,7 @@ permalink: /about/index.html
 description:
 ---
 
-<img itemprop="image" class="img-rounded" src="/assets/img/blog-author.jpg" alt="{{site.username}}">
+<img itemprop="image" class="img-rounded" src="{{ site.baseurl }}/assets/img/blog-author.jpg" alt="{{site.username}}">
 
 ## Tadeu Zagallo
 
