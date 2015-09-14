@@ -151,7 +151,7 @@ Disassembly of section .text:
     1ff7:       6a 00                   push   $0x0
     1ff9:       e8 00 00 00 00          call   1ffe <_syscall>
 
-00001ffe <\_syscall>:
+00001ffe <_syscall>:
     1ffe:       cd 80                   int    $0x80
 {% endhighlight %}
 
