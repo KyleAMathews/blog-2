@@ -13,6 +13,8 @@ categories:
 twitter_text: 'Writing an x86 emulator in JavaScript'
 ---
 
+## Context
+
 As someone that doesn't have a CS background I've always wanted to properly
 understand how things work at the lower level, and had decided to put more
 effort into it.
@@ -43,10 +45,13 @@ actually execute a binary.
 Convincing people to work on this project wasn't very easy either, and it took
 me some time to prove that I wasn't crazy, that I had a reasonable idea of how
 hard it'd be to write a proper emulator, and to explain that I only wanted to
-write it for `fun` and support only very basic use cases.
+write it for `fun` and support only very basic use cases. But at the end I got
+Uri Baghin to join me.
 
-I got a coworker, Uri Baghin, to work with me and our initial goal was to run
-the simplest x86 program possible: just exit with code `0`:
+## Our Goal
+
+Our initial goal was to run the simplest x86 program possible: just exit with
+code `0`:
 
 {% highlight asm %}
 # program.s
@@ -69,8 +74,18 @@ $ as -static -arch i386 -o program.o program.s
 $ ld -static -arch i386 -o program program.o
 {% endhighlight %}
 
-We split the problem in two: Finding the actual assembly instructions in the
-binary and executing them.
+And to test it, you can execute it and check the exit code with the following
+commands:
+
+{% highlight bash %}
+$ ./program
+$ echo $?
+{% endhighlight %}
+
+So, we decided to split the problem in two: Finding the actual assembly
+instructions in the binary and executing them.
+
+## Mach-O Binary Format
 
 To find the actual code, it's necessary to know the Mach-O binary architecture.
 The binary contains diverse segments with different shapes:
@@ -111,6 +126,8 @@ initial value for the registers), the only thing we really care for the basic
 example is the value of `%eip`, the instruction pointer, that is where the
 program code actually begins (In the sample code we are actually using a global
 variable called `PC` instead of an actual register).
+
+## Binary Execution
 
 OK, so now we have the program code mapped to virtual memory, and a pointer to
 the beginning of the code, we `just` need to execute it. One thing that makes
@@ -155,8 +172,30 @@ Functions[0x6a] = () => {
 };
 {% endhighlight %}
 
-For syscalls, we'd have to actually simulate it, so we'd have another map from
-sycall numbers to functions:
+If the opcode is actually an opcode prefix, then we have to read the next byte,
+the actual opcode:
+
+{% highlight javascript %}
+var Fn0x0f = {
+  // jge
+  0x8d: function () {
+    var dist = read(4);
+    if (!NG) {
+      PC += dist;
+    }
+  },
+  // ...
+};
+
+Functions[0x0f] = function () {
+  // Call the actual function inside the prefix
+  var fn = read(1);
+  Fn0x0f[fn]();
+};
+{% endhighlight %}
+
+The last thing we have to deal with are syscalls, we have to actually simulate
+it, so we have another map from sycall numbers to functions:
 
 {% highlight javascript %}
 var Syscalls = {};
@@ -172,6 +211,8 @@ API](https://developer.mozilla.org/en-US/docs/Web/API/File). A html page is the
 entry point, with a single `input` to drop the binary and the output shows up in
 the console.
 
+## Sample Code
+
 The resulting code of the hackathon can be found in this
 [gist](https://gist.github.com/tadeuzagallo/3853299f033bf9b746e4), contains 3
 files as described: the loader (`mach-o.js`), the opcodes' logic (`x86.js`) and
@@ -185,5 +226,6 @@ Please keep in mind that the code is super simple, was completely written in a
 hackathon, so there wasn't much effort into making it very readable (or very
 good for that matter) and we didn't iterate any further on that.
 
-It was enough to run fibonacci in C compiled with `-O3`, but it was unsuccessful
-when trying to benchmark `fibonacci(40)`, it'd just take forever... :(
+It was enough to run `fibonacci` in `C` compiled with `-O3`, it ran up to
+`fibonacci(32)` but it was unsuccessful when trying to benchmark
+`fibonacci(40)`, it'd just take too long.
