@@ -30,7 +30,7 @@ but couldn't figure it without internet...
 
 *(it turns out that for `i386` the return value for the exit syscall had to go
 into the stack instead of into `%ebx`, for `x86_64` the syscall numbers have an
-offset of `0x2000000`, different registers and you actually use `syscall` instead
+offset of `0x2000000`, different registers and you have to use `syscall` instead
 of `int $0x80`... all these things are not very easy when you're first starting
 with assembly)*
 
@@ -87,8 +87,9 @@ instructions in the binary and executing them.
 
 ## Mach-O Binary Format
 
-To find the actual code, it's necessary to know the Mach-O binary architecture.
-The binary contains diverse segments with different shapes:
+The binary contains more than just the assembly code, it contains information
+about it's layout, architecture support, how it should be loaded into memory and
+symbols present in the binary:
 
 ![Mach-O Binary
 image](https://developer.apple.com/library/mac/documentation/DeveloperTools/Conceptual/MachORuntime/art/mach_o_segments.gif)
@@ -97,9 +98,9 @@ image](https://developer.apple.com/library/mac/documentation/DeveloperTools/Conc
 [MachOView](http://sourceforge.net/projects/machoview/), it's super helpful when
 investigating the binary itself.*
 
-We implemented a very simple loader, that worked only for non-fat binaries,
-read only the number of load commands from the header, and actually used only
-the segment commands and the unix thread.
+In order to find the assembly code inside the binary we need to read the load
+commands, more specifically the `LC_SEGMENT` commands, they have information
+about how to map the binary segments to virtual memory.
 
 The `LC_SEGMENT` load commands have a few fields
 
@@ -118,14 +119,17 @@ The `LC_SEGMENT` load commands have a few fields
   right after the `struct segment_command`)
 
 But we can ignore the VM protection and flags for now, and just copy the
-contents of the binary from `File Offset` to `File Offset + File Size` into `VM
-Address` (up to `VM Address + VM Size`).
+contents of the binary from `File Offset` to `File Offset + File Size` into
+virtual memory (implemented as a simple `ArrayBuffer` in this case) from `VM
+Address` to `VM Address + VM Size`.
 
-The Unix Thread load command tells us the initial state of the program (the
-initial value for the registers), the only thing we really care for the basic
-example is the value of `%eip`, the instruction pointer, that is where the
-program code actually begins (In the sample code we are actually using a global
-variable called `PC` instead of an actual register).
+Next thing we need the `LC_UNIXTHREAD` load command. It tells us the initial
+execution state of the main thread of the program.
+
+The important bit here for us is the initial value of `%eip` (the instruction
+pointer), it tells the position in virtual memory of the first program
+instruction, i.e. where the actual code starts (*note:* in the sample code we
+are using a global variable called `PC` instead of simulating a register).
 
 ## Binary Execution
 
@@ -160,7 +164,7 @@ for what was the syntax for the necessary opcodes, a good reference for x86 can
 be found at
 [http://ref.x86asm.net/coder.html](http://ref.x86asm.net/coder.html).
 
-I created a map (the implementation was actually a plain JavaScript object) from
+I created a map (the implementation was really a plain JavaScript object) from
 opcodes to functions. The functions would be responsible to read more data if
 needed by the opcode, e.g:
 
@@ -172,7 +176,7 @@ Functions[0x6a] = function () {
 };
 {% endhighlight %}
 
-If the opcode is actually an opcode prefix, then we have to read the next byte,
+If the opcode is in fact an opcode prefix, then we have to read the next byte,
 the actual opcode:
 
 {% highlight javascript %}
