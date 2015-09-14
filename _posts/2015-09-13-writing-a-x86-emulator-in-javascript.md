@@ -166,7 +166,7 @@ needed by the opcode, e.g:
 
 {% highlight javascript %}
 var Functions = {};
-Functions[0x6a] = () => {
+Functions[0x6a] = function () {
   // Push one byte
   push(read(1));
 };
@@ -199,7 +199,7 @@ it, so we have another map from sycall numbers to functions:
 
 {% highlight javascript %}
 var Syscalls = {};
-Syscalls[0x01] = () => {
+Syscalls[0x01] = function () {
   // Fake exit, since there's no OS
   console.log('Program returned %s', Stack[Registers[ESP + 1]]);
   PC = -1; // Mark the program as ended by setting the program counter to -1
@@ -226,6 +226,5 @@ Please keep in mind that the code is super simple, was completely written in a
 hackathon, so there wasn't much effort into making it very readable (or very
 good for that matter) and we didn't iterate any further on that.
 
-It was enough to run `fibonacci` in `C` compiled with `-O3`, it ran up to
-`fibonacci(32)` but it was unsuccessful when trying to benchmark
-`fibonacci(40)`, it'd just take too long.
+It was enough to run `fibonacci(40)` written in `C` compiled with `clang -O3`
+which took incredible `9m47s`.
