@@ -2,7 +2,6 @@
 layout: post
 title: "Writing an x86 emulator in JavaScript"
 date: 2015-09-13 13:21:35
-image: '/assets/img/'
 description:
 tags:
 - x86
