@@ -231,3 +231,9 @@ good for that matter) and we didn't iterate any further on that.
 
 It was enough to run `fibonacci(40)` written in `C` compiled with `clang -O3`
 which took incredible `9m47s`.
+
+*EDIT:* After reading [this
+comment](https://news.ycombinator.com/item?id=10218755) on `HackerNews` I
+replaced `DataView` with `Uint8Array`, and `fibonacci(40)` is now down to a much
+better `1m53s`, making it faster than `perl` and `ruby 1.8` according to [this
+comparison](http://fengmk2.com/blog/2011/fibonacci/nodejs-python-php-ruby-lua.html) `:)`
