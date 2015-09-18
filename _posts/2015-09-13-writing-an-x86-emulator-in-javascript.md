@@ -145,7 +145,7 @@ a CLI that can be installed with the `binutils` package. It should look like:
 
 {% highlight sh %}
 $ brew install binutils # if you don't have it installed yet
-$ gbojdump -d program
+$ gobjdump -d program
 
 Disassembly of section .text:
 
