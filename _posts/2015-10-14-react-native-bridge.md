@@ -2,11 +2,11 @@
 layout: post
 title: "Bridging in React Native"
 date: 2015-10-14 16:41:03
-description:
+description: "An in-depth look into React Native's core"
 tags:
-- react-native
+- react-native ios
 categories:
-- fun with binaries
+- react-native
 twitter_text: 'Bridging in React Native'
 ---
 
