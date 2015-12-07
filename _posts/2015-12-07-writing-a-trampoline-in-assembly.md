@@ -2,7 +2,7 @@
 layout: post
 title: Writing a 'trampoline' in assembly for profiling
 date: 2015-12-07 22:36:03
-description:
+description: ''
 tags:
 - react-native
 - ios
@@ -15,7 +15,7 @@ twitter_text: Writing a 'trampoline' in assembly for profiling
 
 ## Context
 
-[React Native] has different characteristics than "regular" iOS and JavaScript development, understanding the flow of events across the stack, even working on it, sometimes is complicate. In order to make easier, I've been working on a custom profiler for React Native, inspired by [Android systrace] and using the same front-end, [Google trace-viewer].
+[React Native] has different characteristics than "regular" iOS and JavaScript development, understanding the flow of events across the stack, even working on it, can be complicate sometimes. In order to make easier, I've been working on a custom profiler for React Native, inspired by [Android systrace] and using the same front-end, [Google trace-viewer].
 
 ![Sample systrace output]({{ site.baseurl }}/assets/img/trampoline_systrace.png)
 
