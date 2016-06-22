@@ -2,7 +2,6 @@
 layout: post
 title: "A 𝝺-calculus interpreter"
 date: 2016-06-22 00:38:14
-image: '/assets/img/'
 description:  in less than 200 lines of JavaScript
 tags:
 - interpreter
