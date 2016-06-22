@@ -1,7 +1,7 @@
 # Site settings
 description: Randomly talking about code and compilers
 baseurl: "/blog" # the subpath of your site, e.g. /blog/
-url: "http://tadeuzagallo.com" # the base hostname & protocol for your site
+url: "http://tadeuzagallo.com/blog" # the base hostname & protocol for your site
 
 # User settings
 username: Tadeu Zagallo
