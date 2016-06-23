@@ -53,16 +53,16 @@ But wait, what are tokens?
 
  As you might already know, the parser doesn't operate on source code. Before parsing we run the source code through the `Lexer`, which will break the source code into tokens (which are the ones in all caps in the grammar).  Here are the tokens we can extract from the grammar above:
 
-{# ``` #}
-{% highlight yaml %}
+{{# ``` #}}
+{% highlight javascript %}
 LPAREN: '('
 RPAREN: ')'
-LAMBDA: 'λ' # we'll also allow using '\' for convenience
+LAMBDA: 'λ' // we'll also allow using '\' for convenience
 DOT: '.'
-LCID: [a-z][a-zA-Z]* # LCID stands for LowerCase IDentifier
-                     # i.e. any string starting with a lowercase letter
+LCID: /[a-z][a-zA-Z]*/ // LCID stands for LowerCase IDentifier
+                     // i.e. any string starting with a lowercase letter
 {% endhighlight %}
-{# ``` #}
+{{# ``` #}}
 
 We'll have a `Token` class, that can hold a `type` (one of the above) and an optional value (e.g. for the string in `LCID`).
 
