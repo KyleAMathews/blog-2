@@ -39,8 +39,8 @@ Before writing a parser, the first thing we need to know is what is the grammar 
 Term ::= Application
         | LAMBDA LCID DOT Term
 
-Application ::= Atom
-               | Application Atom
+Application ::= Application Atom
+               | Atom
 
 Atom ::= LPAREN Term RPAREN
         | LCID
@@ -53,14 +53,16 @@ But wait, what are tokens?
 
  As you might already know, the parser doesn't operate on source code. Before parsing we run the source code through the `Lexer`, which will break the source code into tokens (which are the ones in all caps in the grammar).  Here are the tokens we can extract from the grammar above:
 
+{# ``` #}
 {% highlight yaml %}
 LPAREN: '('
 RPAREN: ')'
 LAMBDA: 'λ' # we'll also allow using '\' for convenience
 DOT: '.'
-LCID: [a-z][a-zA-Z]+ # LCID stands for LowerCase IDentifier
+LCID: [a-z][a-zA-Z]* # LCID stands for LowerCase IDentifier
                      # i.e. any string starting with a lowercase letter
 {% endhighlight %}
+{# ``` #}
 
 We'll have a `Token` class, that can hold a `type` (one of the above) and an optional value (e.g. for the string in `LCID`).
 
@@ -120,8 +122,8 @@ Luckily left recursions can be removed with one simple trick:
 {% highlight make %}
 Application ::= Atom Application'
 
-Application' ::= ε  # empty
-                | Atom Application'
+Application' ::= Atom Application'
+                | ε  # empty
 {% endhighlight %}
 
 ### 4.1. AST
@@ -169,8 +171,8 @@ application() {
   // Application ::= Atom Application'
   let lhs = this.atom();
   while (true) {
-    // Application' ::= ε
-    //                | Atom Application'
+    // Application' ::= Atom Application'
+    //                | ε
     const rhs = this.atom();
     if (!rhs) {
       return lhs;
