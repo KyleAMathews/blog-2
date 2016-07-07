@@ -2,6 +2,13 @@
 <html lang="pt-br">
     {% include head.html %}
     <body>
+        {% if page.draft %}
+          <script>
+            if (window.location.hash !== '#review-draft') {
+              window.location = '{{ site.baseurl }}/';
+            }
+          </script>
+        {% endif %}
         {% include svg-icons.html %}
         {% include header-post.html %}
         <section class="post" itemscope itemtype="http://schema.org/BlogPosting">
