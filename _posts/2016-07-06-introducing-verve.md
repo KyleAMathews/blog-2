@@ -117,9 +117,9 @@ Verve's VM is a [stack machine] and has its own bytecode, which is tiny, only 23
  
 ### Interpreter
 
-The interpreter is probably the part of the VM which I'm most proud off: It's written in [GAS] x86_64, and inspired by [JavaScriptCore][JSC]'s LLInt (Low Level Interpreter), with a few modifications:
+The interpreter is probably the part of the VM which I'm most proud of: It's written in [GAS] x86_64, and inspired by [JavaScriptCore][JSC]'s LLInt (Low Level Interpreter), with a few modifications:
 Since the code is platform dependant, I can abuse of all x86_64's registers.
-Instead of adding holes to the bytecode to have some sort of inline cache, I use a side table, and the bytecode only contains an index in the table. This prevents writing to the bytecode stream (and in this case copying memory pages).
+When it comes to [inline caching], LLInt's bytecode contains "holes" for variable values, which will later be rewritten into the actual value loaded from the variable. In Verve I opted not to that because it requires modifying the bytecode itself, which will cause memory pages to be copied, and instead I use a side table for storing the values and only add a fixed index into the table to bytecode itself.
 
 ### Garbage Collection (GC)
 
@@ -156,3 +156,4 @@ I hope you enjoyed the post, and if you think you'd have fun with [Verve] as wel
 [syntactic sugar]: https://en.wikipedia.org/wiki/Syntactic_sugar
 [AOT]: https://en.wikipedia.org/wiki/Ahead-of-time_compilation
 [LLVM]: http://llvm.org
+[inline caching]: https://en.wikipedia.org/wiki/Inline_caching
