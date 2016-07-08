@@ -53,7 +53,7 @@ type list<t> {
 }
 {% endhighlight %}
 
-Here we define the recursive [Generalised Algebraic Data Type][GADT] (GADT) `list`, with two type constructors (which *construct* instances of the `list` type), `Nil` and `Cons`.
+Here we define the recursive type `list`, that takes the type variable `t`, which represents what type this list will contain. The `list` type has two type constructors (which *construct* instances of a type), `Nil` and `Cons`.
 
 Once you have constructed a type, the only way to extract its contents is to pattern `match` it:
 
@@ -143,7 +143,6 @@ I hope you enjoyed the post, and if you think you'd have fun with [Verve] as wel
 [Rust]: https://www.rust-lang.org
 [Haskell]: https://www.haskell.org/tutorial/classes.html
 [ADT]: https://en.wikipedia.org/wiki/Algebraic_data_type
-[GADT]: https://en.wikipedia.org/wiki/Generalized_algebraic_data_type
 [Grammar]: https://github.com/tadeuzagallo/verve-lang/blob/master/resources/grammar.ebnf
 [JSC]: http://trac.webkit.org/wiki/JavaScriptCore
 [GC]: https://en.wikipedia.org/wiki/Garbage_collection_(computer_science)
