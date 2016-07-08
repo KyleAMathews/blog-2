@@ -1,12 +1,14 @@
 ---
 layout: post
 title: "Introducing Verve"
-date: 2016-07-06 00:22:12
+date: 2016-07-08 17:03:12
 description: An experimental, minimalistic, static, functional language with zero dependencies.
 tags:
+- verve
 categories:
-twitter_text:
-draft: true
+- verve
+- interpreter
+twitter_text: "Introducing Verve: An experimental, minimalistic, functional language with zero dependencies"
 ---
 
 I make no secret that I have been working on a programming language for quite a while, and now that I found a name for it, I can finally make it open source!
