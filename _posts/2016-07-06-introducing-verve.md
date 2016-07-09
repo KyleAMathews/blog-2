@@ -97,7 +97,7 @@ This are the base concepts of the language, next I'll talk a little bit about ho
 
 ## The implementation
 
-Right now [Verve] runs on it's own [Virtual Machine][VM] (VM), which is something that is no longer necessary: When I started what became the current implementation, I didn't really want to write a language, I just wanted to write a VM, but I needed something to run on it and I was too lazy to write a proper parser, so I just started off with some very basic lisp.
+Right now [Verve] runs on its own [Virtual Machine][VM] (VM), which is something that is no longer necessary: When I started what became the current implementation, I didn't really want to write a language, I just wanted to write a VM, but I needed something to run on it and I was too lazy to write a proper parser, so I just started off with some very basic lisp.
 
 As I worked on the VM, I started using the language for tests and sample code, and I didn't really like it, so I started spending more time in making it a better language than on the VM itself, and now I have a statically typed language, where we can know all the types at compile time, and for which it should be rather straightforward to generate machine code ahead of time given that we already generate bytecode.
 
