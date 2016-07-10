@@ -222,7 +222,7 @@ The calls have to start from native* it calls into JS, and during the execution,
 
 ## Argument types
 
-For calls from native to JS it's easier, the arguments are passed as an `NSArray` that we just encode as JSON, but for the calls from JS we need the native type, for that we check for primitives explicitly (i.e. ints, floats, chars, etc...) but as mentioned above, for any objects (and structs), the runtime doesn't give us enough information from the `NSMethodSignature`, and we save the types as stings.
+For calls from native to JS it's easier, the arguments are passed as an `NSArray` that we just encode as JSON, but for the calls from JS we need the native type, for that we check for primitives explicitly (i.e. ints, floats, chars, etc...) but as mentioned above, for any objects (and structs), the runtime doesn't give us enough information from the `NSMethodSignature`, and we save the types as strings.
 
 We use regular expression to extract the types from the method signature, and we use the [`RCTConvert`][RCTConvert] utility class to actually transform the objects, it has a method for every type supported by default, and it tries to convert the `JSON` input into the desired type.
 
