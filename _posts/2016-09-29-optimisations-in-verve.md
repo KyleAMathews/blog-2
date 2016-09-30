@@ -10,45 +10,50 @@ tags:
 categories:
 - interpreter
 - verve
-draft: true
-twitter_text: Optimisations in Verve: Premature optimisations for fun!
+twitter_text: "Optimisations in Verve: Premature optimisations for fun!"
 ---
 
-We all know that "Premature optimisations are the root of all evil" and all that stuff, but well, sometimes optimising things can be fun.
+I have definitely heard that "Premature optimisation is the root of all evil" and all that stuff, but well, sometimes optimising things can be fun.
 
-I started Verve as a VM rather than as a language, just for fun, since I was starting to dig into JavaScriptCore, and thought it'd be nice to try implementing a small VM.
+I started [Verve] as a Virtual Machine (VM) rather than as a programming language, just for fun, since I was starting to dig into [JavaScriptCore] (JSC), and thought it'd be nice to try implementing a small VM.
 
 ## MVP
 
-My first milestone was the easiest possible, execute a simple program, like "Hello, World". In order to achieve that, I'd have to write this program somehow, and I chose to start with a lisp-like simple language, since it's as easy to parse as it gets.
+My first milestone was the easiest possible, execute a simple program, like "Hello, World", but with number. In order to achieve that, I'd have to write this program somehow, and I chose to start with a lisp-like simple language, since it's as easy to parse as it gets.
 
-Since my main was building the VM, I started with some kind of bytecode right away, rather than interpreting the AST first.
+{% highlight clojure %}
+(print "Hello, World!")
+{% endhighlight %}
+
+Since my main goal was building the VM, I started with some kind of bytecode right away, rather than interpreting the AST first.
 
 As soon as my compiler front-end was smart enough to spit out some bytecode for simple function calls I jumped straight into the fun part: writing the interpreter.
 
-It started out the simplest way I could think of: a big switch on the opcode you read (a simple `int` in this case). [original interpreter][initial-interpreter]
+It started out the simplest way I could think of: a big switch on the opcode (a simple `int` in this case). [original interpreter][initial-interpreter]
 
 I was pretty happy with the result, everything kinda worked and I had only spent a few days. But I needed some new milestone to keep the motivation going.
 
 ## fib(40)
 
-And that would be my next milestone: beat JavaScriptCore on `fib(40)`. I know, it's meaningless, and please, **I'm not saying my dummy VM is faster than ANY real VM**, but still, seemed like a fun goal.
+And that would be my next milestone: beat JSC on `fib(40)`. I know, it's meaningless, and please, **I'm not saying my dummy VM is faster than ANY real VM**, but still, seemed like a fun goal.
 
-At first, I admit I thought it wouldn't be too hard: JavaScriptCore is a full-featured VM, but it has to do way more stuff than my VM:
+At first, I admit I thought it wouldn't be too hard: JSC is a full-featured VM, but it has to do way more stuff than my VM:
 
 * First of all: I wasn't considering the JIT, only interpreter vs interpreter.
 * JavaScript is not a simple language to parse, I only had my lisp-like dummy language.
 * It deals with caches, profiles, counters, and many other things, which add overhead.
+* It has much more code, which affects load time, cache locality, etc.
+* The interpreter is written in a high-level assembly language, which doesn't allow abusing platform specific registers.
 
 So I decided to give it a shot, and see how would it compare. Of course, at first it wouldn't even compile on my VM, but after a few days, I finally got it working.
 
-And how fast was it? I couldn't even know, it took so long that I never saw it finish (it's definitely over 30min).
+And how fast was it? I couldn't even know, it took so long that I never saw it finish (definitely over 30min).
 
 Damn, it was **at least** 15x slower than [my x86 emulator][x86-emulator], written in JavaScript itself!
 
 ## Optimisations
 
-Ok, so enough with history time... I'll mention 3 key optimisations I worked on:
+Ok, so enough with history time... I'll mention 3 key areas I worked on optimising:
 
 * Scope lookup
 * Interpreter loop
@@ -62,7 +67,7 @@ First of all, by scope lookup I mean all the time spent on generating scopes, de
 
 The scope is (TLDR) where the variables are stored: You start with the global scope, and every function introduces a new scope, i.e. the variables defined inside the function can't be accessed out of it.
 
-{% highlight 'javascript' %}
+{% highlight javascript %}
 // global scope
 (function () {
   // scope a
@@ -72,9 +77,9 @@ The scope is (TLDR) where the variables are stored: You start with the global sc
 })
 {% endhighlight %}
 
-Verve has always had [lexical scope]:
+Verve has always had [lexical scoping]:
 
-{% highlight 'javascript' %}
+{% highlight javascript %}
 var a = 2;
 var plusA = (function () {
  var a = 10;
@@ -101,23 +106,26 @@ class Scope {
 }
 ```
 
-In order to deal with the case where a `Closure` lives longer than its `Scope`, I wrapped in C++ shared pointer: The `Scope` remains alive as long as there's anything pointing to it. Three things could be pointing to a scope:
+In order to deal with the case where a `Closure` lives longer than its `Scope`, I wrapped it in C++ shared pointers: The `Scope` remains alive as long as there's anything pointing to it. Three things could be pointing to a scope:
 
-* It could be the current scope for the code the VM was currently executing
-* It could be the parent of the mentioned above
-* A `Closure` could be holding it.
+* It could be the scope for the code the VM was currently executing
+* It could be a parent of the scope mentioned above
+* A `Closure` could be holding onto it.
 
 ## Optimising the Scope
 
 The first optimisation follows my favorite motto: Nothing is faster than doing nothing.
 
-We only need this whole Scope thing if the function actually uses it! During parsing we can investigate the values used in the function, and if it doesn't touch the parent scope we can simply ignore it.
+We only need this whole Scope thing if the function actually uses it! During parsing we can analyse all the variables used in the function, and if it doesn't reference anything from the parent scope, we don't need to keep track of the scope at all.
 
-This saves creating new scopes on every invocation of the function
+This saves creating new scopes on every function invocation, but it doesn't speed up lookups in the scope: `fib(40)` is recursive, and for every invocation of `fib(n)` we'll lookup `fib` twice, one for `fib(n-1)` and one for `fib(n-2)`.
+
+In order to speed up the lookups, I worked on a few optimisations:
+
 * `std::shared_ptr` wasn't fast enough. It was just way more robust than what I needed... Since it was only used in a few places, Replacing it with a simple `refCount` field and doing manual reference counting worked just as well and was much faster.
 * `std::unordered_map` wasn't fast enough. Same thing. Most of the scopes hold very few values for my small programs, replacing the std implementation with a simple hash map built with a single small array and quick hashing by just using the least significant bits of the pointer was way faster.
 * Going to C++ for every lookup was too slow: Once I had optimised the interpreter (read below) going to C++ meant saving the registers state and aligning the stack. Moving the whole lookup into `asm` was faster.
-* Caching the lookups: Adding a side table as a linear cache of the lookups, combined with `asm` lookup, made it so that cache hits only take *2 instructions*!
+* Caching the lookups: Adding a side table as a linear cache of the lookups, combined with the `asm` implementation of the lookup, made it so that cache hits only take *2 instructions*!
 
 Ok, that's enough about scopes...
 
@@ -132,23 +140,23 @@ Going to assembly has many benefits that can lead to massive performance wins, f
 
 I considered a two options when I was writing the interpreter:
 
-1. JavaScriptCore's model: At the end of every opcode implementation, we check what's next and jump to it.
+1. JSC's model: At the end of every opcode implementation, we check what is the next opcode and jump to its implementation.
 2. "Traditional model": Still have a central loop, but optimise it by hand in assembly.
 
-I started with the former option, due to the inspiration from JavaScriptCore, but there were a few downsides raised by other I talked to:
+I started with JSC's model, since it was what inspired me to write the VM in the first place, but there were a few downsides raised by other I talked to:
 
-* It makes the bytecode big - you need the opcodes to be the address of the actual implementation, which means that you need word-sized instructions
+* It makes the bytecode big - you need the opcodes to be the address of their actual implementation, which means that you need word-sized instructions
 * It messes up branch prediction: at the of every opcode you jump to random address taken from a random location in the heap.
 
-Upon hearing that, I thought I'd try the latter and see whether it was actually faster.
+Upon hearing that, I thought I'd try switching to the traditional model and see whether it was actually faster.
 
 The loop would start by using the next opcode's value to calculate the offset into a list of jumps that would follow. But that was not really efficient, since it'd take the pointer arithmetic + two jumps to get to the desired opcode. [source code][initial-traditional-asm]
 
-My next step was disassembling a switch and looking at how the compiler implemented jump tables, and it was much better than my code: Instead of a list of jumps, you add the relative addresses after the loop, use the value of opcode to read the right address, and add that to current instruction pointer to get the absolute address of the function. [source code][traditional-jump-table]
+My next step was disassembling a switch and looking at how the compiler implemented jump tables, and it was much better than my code: Instead of a list of jumps, you add the relative addresses after the loop, use the value of the opcode to read the right address, and add that to current instruction pointer to get the absolute address of the function. [source code][traditional-jump-table]
 
 I kept on battling, with some smaller optimisations (even though quite effective sometimes), such as [reordering methods based on "hotness"][hot-cold-order] and [refactoring to remove some expensive instructions][pushf-popf], but it still wasn't fast enough...
 
-In a desperate attempt I tried to [rollback to the JSC-style interpreter][back-to-jsc], and to my surprise it was **much** faster. Of course I didn't just throw away all the optimisations I worked on while using the traditional loop implementation, but switching back was what pushed over from being about as fast as JSC, to being faster.
+In a desperate attempt I tried to [rollback to the JSC-style interpreter][back-to-jsc], and to my surprise it was **much** faster. Of course I didn't just throw away all the optimisations I worked on while using the traditional loop implementation, but switching back was what pushed the interpreter from being about as fast as JSC, to being faster.
 
 ## Fast closures
 
@@ -162,8 +170,8 @@ But, if we can figure out at parsing time whether a closure captures it's scope,
 
 The idea of fast closures is just a tagged pointer which only contains the offset of the function. For memory alignment reasons, some of the least significant bits will always be zero for a valid pointer, so we set the least significant bit to one in order to indicate that it's not an actual pointer, and right next to it we add the functions offset in the bytecode, shifted to left by 1.
 
-Real closure: 0x00FFF13320
-Fast closure: 0x0000000321 -- the closure's implementation lies on offset (0x0321 >> 1) = 0x0190 
+*Real closure:* 0x00FFF13320<br/>
+*Fast closure:* 0x0000000321 *// the address is 0x0190 (0x0321 >> 1)*
 
 <small>As I wrote the previous paragraph I realised there's a bug: fast closures should also not contain nested closures, otherwise the parent scope will be polluted. The type checker should catch it nonetheless, but you can bypass it, but, well...</small>
 
@@ -171,18 +179,18 @@ Fast closure: 0x0000000321 -- the closure's implementation lies on offset (0x032
 
 Given the following implementation of `fib` in Verve
 
-```
+{% highlight rust %}
 fn fib(n: int) -> int {
   if (n < 2) n
   else fib(n - 1) + fib(n - 2)
 }
 
 print(fib(40))
-```
+{% endhighlight %}
 
 And the following implementation in JavaScript
 
-```
+{% highlight javascript %}
 function fib(n) {
   return n < 2
     ? n
@@ -190,18 +198,19 @@ function fib(n) {
 }
 
 print(fib(40))
-```
+{% endhighlight %}
 
-The Verve version, on [this commit\*][test-commit], takes 8.247s on an avg of 5 runs.
-The JavaScript version, on JSC version 602.1.50, running with `JSC_useJIT=0` takes 14.558s on an avg of 5 runs.
+Verve, on [this commit\*][test-commit], takes `8.247s` on an *avg of 5 runs*.
 
-Both were tested on a Early-2016 MacBook with macOS Sierra.
+JSC, version *602.1.50*, with `JSC_useJIT=0` takes `14.558s` on an *avg of 5 runs*.
 
-`*` This commit was picked as I stopped working on perf ever since. Lately I've been having more fun with making it a better language, with proper type checking instead.
+Both were tested on a Early-2016 MacBook running macOS 10.12.
+
+*`*` This commit was picked as I stopped working on perf ever since. Lately I've been having more fun with making it a better language, with proper type checking instead.*
 
 ## Conclusion
 
-There's no conclusion really... I don't mean to prove anything here, just wrote the post for the same reason I wrote the code: for fun. Hopefully it might of some help, or at least some inspiration, for someone, at some point.
+There's no conclusion really... I don't mean to prove anything here, just wrote the post for the same reason I wrote the code: for fun. Hopefully it might be of some help, or at least some inspiration, for someone at some point.
 
 Thanks for reading! :)
 
@@ -211,6 +220,9 @@ Thanks for reading! :)
 [initial-interpreter]: https://github.com/tadeuzagallo/verve-lang/blob/ded677d442184b8b784dce354884d81fc807a772/compiler/vm.cc#L72
 [fast-closures]: https://github.com/tadeuzagallo/verve-lang/commit/5ad1ec8f086063094c97fc2c87016596dbb5094d
 [test-commit]: https://github.com/tadeuzagallo/verve-lang/commit/5f735b28221542a70af676d832abb1cb68015ad5
-[lexical scope]:
+[lexical scoping]: https://en.wikipedia.org/wiki/Scope_(computer_science)#Lexical_scoping
 [initial-traditional-asm]: https://github.com/tadeuzagallo/verve-lang/commit/1e4989ccf6d76a13c888a122be8c9b1f79ce99e3
 [traditional-jump-table]: https://github.com/tadeuzagallo/verve-lang/commit/f74b753b5c0ae67c5acb0f2a4036f36ca87a7421
+[Verve]: https://github.com/tadeuzagallo/verve-lang
+[JavaScriptCore]: http://trac.webkit.org/wiki/JavaScriptCore
+[x86-emulator]: http://tadeuzagallo.com/blog/writing-an-x86-emulator-in-javascript/
