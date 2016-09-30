@@ -19,13 +19,13 @@ I started [Verve] as a Virtual Machine (VM) rather than as a programming languag
 
 ## MVP
 
-My first milestone was the easiest possible, execute a simple program, like "Hello, World", but with number. In order to achieve that, I'd have to write this program somehow, and I chose to start with a lisp-like simple language, since it's as easy to parse as it gets.
+My first milestone was the easiest possible, execute a simple program, like "Hello, World". However, in order to achieve that, I needed to write this program somehow, and I chose to start with a lisp-like simple language, since it's as easy to parse as it gets.
 
 {% highlight clojure %}
 (print "Hello, World!")
 {% endhighlight %}
 
-Since my main goal was building the VM, I started with some kind of bytecode right away, rather than interpreting the AST first.
+Since my main goal was building the VM, I started with some kind of bytecode right away, rather than interpreting the AST at first.
 
 As soon as my compiler front-end was smart enough to spit out some bytecode for simple function calls I jumped straight into the fun part: writing the interpreter.
 
@@ -37,7 +37,15 @@ I was pretty happy with the result, everything kinda worked and I had only spent
 
 And that would be my next milestone: beat JSC on `fib(40)`. I know, it's meaningless, and please, **I'm not saying my dummy VM is faster than ANY real VM**, but still, seemed like a fun goal.
 
-At first, I admit I thought it wouldn't be too hard: JSC is a full-featured VM, but it has to do way more stuff than my VM:
+{% highlight rust %}
+// the Fibonacci implementation
+fn fib(n: int) -> int {
+  if (n < 2) n
+  else fib(n-1) + fib(n-2)
+}
+{% endhighlight %}
+
+At first, I admit I thought it wouldn't be too hard: JSC is a full-featured VM, but it has to do way more stuff than my rather simplistic VM:
 
 * First of all: I wasn't considering the JIT, only interpreter vs interpreter.
 * JavaScript is not a simple language to parse, I only had my lisp-like dummy language.
@@ -49,7 +57,7 @@ So I decided to give it a shot, and see how would it compare. Of course, at firs
 
 And how fast was it? I couldn't even know, it took so long that I never saw it finish (definitely over 30min).
 
-Damn, it was **at least** 15x slower than [my x86 emulator][x86-emulator], written in JavaScript itself!
+Damn, it was **at least 15x** slower than [my x86 emulator][x86-emulator], written in JavaScript itself!
 
 ## Optimisations
 
@@ -65,7 +73,7 @@ These cover pretty much all the time spent in a simple program such as `fib(40)`
 
 First of all, by scope lookup I mean all the time spent on generating scopes, deleting scopes, and actually looking values up in the scope.
 
-The scope is (TLDR) where the variables are stored: You start with the global scope, and every function introduces a new scope, i.e. the variables defined inside the function can't be accessed out of it.
+The scope is (TL;DR) where the variables are stored: You start with the global scope, and every function introduces a new scope, i.e. the variables defined inside the function can't be accessed out of it.
 
 {% highlight javascript %}
 // global scope
@@ -92,7 +100,9 @@ Here the function `plusA` can access `a`, even though it's declared in it's pare
 
 My initial implementation was, again, the simplest I could think about: A `Closure` was an object that would hold a pointer to a `Scope`, and the `Scope` was a linked list so you could look for a variable up through the scope chain.
 
-```
+{% highlight javascript %}
+// pseudocode
+
 class Closure {
   scope: Scope,
   fn: Function
@@ -104,9 +114,9 @@ class Scope {
 
   get(key) { _values.get(key) || parentScope.get(key) }
 }
-```
+{% endhighlight %}
 
-In order to deal with the case where a `Closure` lives longer than its `Scope`, I wrapped it in C++ shared pointers: The `Scope` remains alive as long as there's anything pointing to it. Three things could be pointing to a scope:
+In order to deal with the case where a `Closure` lives longer than its `Scope` (e.g. a `Closure` that returns a `Closure`), I wrapped it in C++ shared pointers: the `Scope` remains alive as long as there's anything pointing to it. Three things could be pointing to a scope:
 
 * It could be the scope for the code the VM was currently executing
 * It could be a parent of the scope mentioned above
@@ -116,9 +126,9 @@ In order to deal with the case where a `Closure` lives longer than its `Scope`, 
 
 The first optimisation follows my favorite motto: Nothing is faster than doing nothing.
 
-We only need this whole Scope thing if the function actually uses it! During parsing we can analyse all the variables used in the function, and if it doesn't reference anything from the parent scope, we don't need to keep track of the scope at all.
+We only need this whole Scope thing if the function actually uses it! During parsing we can analyse all the variables used in the function, and if it doesn't reference anything from the parent scope, we don't need to keep track of the enclosing scope at all.
 
-This saves creating new scopes on every function invocation, but it doesn't speed up lookups in the scope: `fib(40)` is recursive, and for every invocation of `fib(n)` we'll lookup `fib` twice, one for `fib(n-1)` and one for `fib(n-2)`.
+This saves creating new scopes on every function invocation, but it doesn't speed up lookups in the scope: `fib(40)` is recursive, and for every invocation of `fib(n)` we'll look `fib` up twice, one for `fib(n-1)` and one for `fib(n-2)`.
 
 In order to speed up the lookups, I worked on a few optimisations:
 
