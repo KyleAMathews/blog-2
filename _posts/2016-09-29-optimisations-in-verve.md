@@ -57,7 +57,7 @@ So I decided to give it a shot, and see how would it compare. Of course, at firs
 
 And how fast was it? I couldn't even know, it took so long that I never saw it finish (definitely over 30min).
 
-Damn, it was **at least 15x** slower than [my x86 emulator][x86-emulator], written in JavaScript itself!
+Damn, it was **at least 15x slower** than [my x86 emulator][x86-emulator], written in JavaScript itself!
 
 ## Optimisations
 
@@ -132,10 +132,10 @@ This saves creating new scopes on every function invocation, but it doesn't spee
 
 In order to speed up the lookups, I worked on a few optimisations:
 
-* `std::shared_ptr` wasn't fast enough. It was just way more robust than what I needed... Since it was only used in a few places, Replacing it with a simple `refCount` field and doing manual reference counting worked just as well and was much faster.
-* `std::unordered_map` wasn't fast enough. Same thing. Most of the scopes hold very few values for my small programs, replacing the std implementation with a simple hash map built with a single small array and quick hashing by just using the least significant bits of the pointer was way faster.
-* Going to C++ for every lookup was too slow: Once I had optimised the interpreter (read below) going to C++ meant saving the registers state and aligning the stack. Moving the whole lookup into `asm` was faster.
-* Caching the lookups: Adding a side table as a linear cache of the lookups, combined with the `asm` implementation of the lookup, made it so that cache hits only take *2 instructions*!
+* `std::shared_ptr` wasn't fast enough. It was just way more robust than what I needed... Since it was only used in a few places, Replacing it with a simple `refCount` field and doing manual reference counting worked just as well and was much faster. [commit][drop-shared-ptr]
+* `std::unordered_map` wasn't fast enough. Same thing. Most of the scopes hold very few values for my small programs, replacing the std implementation with a simple hash map built with a single small array and quick hashing by just using the least significant bits of the pointer was way faster. *(part of the commit above)*
+* Going to C++ for every lookup was too slow: Once I had optimised the interpreter (read below) going to C++ meant saving the registers state and aligning the stack. Moving the whole lookup into `asm` was faster. [commit][asm-lookup]
+* Caching the lookups: Adding a side table as a linear cache of the lookups, combined with the `asm` implementation of the lookup, made it so that cache hits only take *2 instructions*! [commit][side-table-cache]
 
 Ok, that's enough about scopes...
 
@@ -236,3 +236,6 @@ Thanks for reading! :)
 [Verve]: https://github.com/tadeuzagallo/verve-lang
 [JavaScriptCore]: http://trac.webkit.org/wiki/JavaScriptCore
 [x86-emulator]: http://tadeuzagallo.com/blog/writing-an-x86-emulator-in-javascript/
+[drop-shared-ptr]: https://github.com/tadeuzagallo/verve-lang/commit/c7ac75cd3858d859c681b79c57f8d43f02b164b0
+[asm-lookup]: https://github.com/tadeuzagallo/verve-lang/commit/055e3f7cbd890b847dc640fedb44969f4279d2fd
+[side-table-cache]: https://github.com/tadeuzagallo/verve-lang/commit/c4e9a3e0166ac4ac4da2dd562a380a9e720b2fe4
