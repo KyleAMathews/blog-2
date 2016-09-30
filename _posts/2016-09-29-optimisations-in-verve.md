@@ -220,7 +220,11 @@ Both were tested on a Early-2016 MacBook running macOS 10.12.
 
 ## Conclusion
 
-There's no conclusion really... I don't mean to prove anything here, just wrote the post for the same reason I wrote the code: for fun. Hopefully it might be of some help, or at least some inspiration, for someone at some point.
+Optimising things can be fun, but be mindful when optimising real world projects. Most of the time optimisations are about trading readability and mantainability for speed, which doesn't always pay off.
+
+All the optimisations mentioned here weren't picked at random, even though it's a side project, everything was carefully profiled and optimised, before and *after* optimising - things don't always go as you expected.
+
+Other than that, I don't mean to prove anthing - this is not a real benchmark, and there's no way of comparing the Verve VM in its current state to any full-featured VM... I just wrote the post for the same reason I wrote the code: for fun, and hoping it might be helpful, or at least give some inspiration, for someone at some point.
 
 Thanks for reading! :)
 
