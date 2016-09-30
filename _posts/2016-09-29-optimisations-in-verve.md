@@ -2,7 +2,7 @@
 layout: post
 title: "Optimisations in Verve"
 date: 2016-09-30 10:47:06
-description: Premature optimisations for fun!
+description: 'Premature optimisations for fun!'
 image: '/assets/img/verve-logo.png'
 tags:
 - verve
@@ -32,12 +32,11 @@ As soon as my compiler front-end was smart enough to spit out some bytecode for 
 
 It started out the simplest way I could think of: a big switch on the opcode (a simple `int` in this case). [original interpreter][initial-interpreter]
 
-I was pretty happy with the result, everything kinda worked and I had only spent a few days. But I needed some new milestone to keep the motivation going.
+I was pretty happy with the result, given that everything kinda worked and I had only spent a few days. But I needed some new milestone to keep the motivation going.
 
 ## fib(40)
 
 And that would be my next milestone: beat JSC on `fib(40)`. I know, it's meaningless, and please, **I'm not saying my dummy VM is faster than ANY real VM**, but still, seemed like a fun goal.
-
 {% highlight rust %}
 // the Fibonacci implementation
 fn fib(n: int) -> int {
@@ -46,7 +45,7 @@ fn fib(n: int) -> int {
 }
 {% endhighlight %}
 
-At first, I admit I thought it wouldn't be too hard: JSC is a full-featured VM, but it has to do way more stuff than my rather simplistic VM:
+At first, I admit I thought it wouldn't be too hard: JSC is a full-featured VM, but it has to do way more work than my rather simplistic VM:
 
 * First of all: I wasn't considering the JIT, only interpreter vs interpreter.
 * JavaScript is not a simple language to parse, I only had my lisp-like dummy language.
@@ -97,7 +96,7 @@ var plusA = (function () {
 plusA(5) // 15
 {% endhighlight %}
 
-Here the function `plusA` can access `a`, even though it's declared in it's parent scope, rather than in it's body. And when the function is called, it still looks up the scope where it was defined, rather than where it was called from. This means that functions have to keep track of their enclosing scope.
+Here the function `plusA` can access `a`, even though it's declared in its parent scope, rather than in its body. And when the function is called, it still looks up the scope where it was defined, rather than where it was called from. This means that functions have to keep track of their enclosing scope.
 
 My initial implementation was, again, the simplest I could think about: A `Closure` was an object that would hold a pointer to a `Scope`, and the `Scope` was a linked list so you could look for a variable up through the scope chain.
 
@@ -111,9 +110,9 @@ class Closure {
 
 class Scope {
   parentScope: Scope,
-  _values: Map<String, Value>,
+  values: Map<String, Value>,
 
-  get(key) { _values.get(key) || parentScope.get(key) }
+  get(key) { values.get(key) || parentScope.get(key) }
 }
 {% endhighlight %}
 
@@ -133,7 +132,7 @@ This saves creating new scopes on every function invocation, but it doesn't spee
 
 In order to speed up the lookups, I worked on a few optimisations:
 
-* `std::shared_ptr` wasn't fast enough. It was just way more robust than what I needed... Since it was only used in a few places, Replacing it with a simple `refCount` field and doing manual reference counting worked just as well and was much faster. [commit][drop-shared-ptr]
+* `std::shared_ptr` wasn't fast enough. It was just way more robust than what I needed... Since it was only used in a few places, replacing it with a simple `refCount` field and doing manual reference counting worked just as well and was much faster. [commit][drop-shared-ptr]
 * `std::unordered_map` wasn't fast enough. Same thing. Most of the scopes hold very few values for my small programs, replacing the std implementation with a simple hash map built with a single small array and quick hashing by just using the least significant bits of the pointer was way faster. *(part of the commit above)*
 * Going to C++ for every lookup was too slow: Once I had optimised the interpreter (read below) going to C++ meant saving the registers state and aligning the stack. Moving the whole lookup into `asm` was faster. [commit][asm-lookup]
 * Caching the lookups: Adding a side table as a linear cache of the lookups, combined with the `asm` implementation of the lookup, made it so that cache hits only take *2 instructions*! [commit][side-table-cache]
@@ -149,21 +148,21 @@ Going to assembly has many benefits that can lead to massive performance wins, f
 * Fine-grained control over the stack layout: no need for keeping a virtual stack in C++!
 * Control over registers: Writing platform specific assembly means that I can use every single callee-saved register to keep around the data I constantly need to access.
 
-I considered a two options when I was writing the interpreter:
+I considered two options when I was writing the interpreter:
 
 1. JSC's model: At the end of every opcode implementation, we check what is the next opcode and jump to its implementation.
 2. "Traditional model": Still have a central loop, but optimise it by hand in assembly.
 
-I started with JSC's model, since it was what inspired me to write the VM in the first place, but there were a few downsides raised by other I talked to:
+I started with JSC's model, since it was what inspired me to write the VM in the first place, but there were a few downsides raised by others I talked to:
 
-* It makes the bytecode big - you need the opcodes to be the address of their actual implementation, which means that you need word-sized instructions
-* It messes up branch prediction: at the of every opcode you jump to random address taken from a random location in the heap.
+* It makes the bytecode big - you need the opcodes to be the address of their actual implementation, which means that you need word-size instructions
+* It messes up branch prediction: at the end of every opcode you jump to a random address taken from a random location in the heap.
 
 Upon hearing that, I thought I'd try switching to the traditional model and see whether it was actually faster.
 
 The loop would start by using the next opcode's value to calculate the offset into a list of jumps that would follow. But that was not really efficient, since it'd take the pointer arithmetic + two jumps to get to the desired opcode. [source code][initial-traditional-asm]
 
-My next step was disassembling a switch and looking at how the compiler implemented jump tables, and it was much better than my code: Instead of a list of jumps, you add the relative addresses after the loop, use the value of the opcode to read the right address, and add that to current instruction pointer to get the absolute address of the function. [source code][traditional-jump-table]
+My next step was disassembling a switch and looking at how the compiler implemented jump tables, and it was much better than my code: Instead of a list of jumps, you put the relative addresses of the opcodes after the loop, use the value of the opcode to read the right address, and add that to current instruction pointer to get the absolute address of the function. [source code][traditional-jump-table]
 
 I kept on battling, with some smaller optimisations (even though quite effective sometimes), such as [reordering methods based on "hotness"][hot-cold-order] and [refactoring to remove some expensive instructions][pushf-popf], but it still wasn't fast enough...
 
@@ -171,20 +170,20 @@ In a desperate attempt I tried to [rollback to the JSC-style interpreter][back-t
 
 ## Fast closures
 
-`fib(40)` is nothing more than just calling the same function over and over again, *billions* of times. It'd be great if calling a function was fast!
+`fib(40)` is nothing more than just calling the same function over and over again, *billions* of times. It'd be great if function calls were fast!
 
-In my naive implementation, every function implemented in Verve would be represented in memory by the Closure object I mentioned above, that has a reference to the function and another to it's enclosing scope. When you make a call, we lookup in the scope for the callee, check whether it's a closure, and if so, we jump to C++ so it can "prepare the closure".
+In my naive implementation, every function implemented in Verve would be represented in memory by the Closure object I mentioned above, that has a reference to the Function implementation and another to it's enclosing scope. When you make a call, we lookup in the scope for the callee, check whether it's a closure, and if so, we jump to C++ so it can "prepare the closure".
 
 Preparing the closure means: checking whether it needs a new scope, and finding the implementation's offset in the bytecode.
 
-But, if we can figure out at parsing time whether a closure captures it's scope, we can be sure that we don't need a new scope, all we need is the bytecode offset.
+But, if we can figure out at parsing time whether a closure accesses its parent scope, we can make so that functions that don't only have their implementation offset it the bytecode.
 
-The idea of fast closures is just a tagged pointer which only contains the offset of the function. For memory alignment reasons, some of the least significant bits will always be zero for a valid pointer, so we set the least significant bit to one in order to indicate that it's not an actual pointer, and right next to it we add the functions offset in the bytecode, shifted to left by 1.
+The idea of fast closures is exactly that: a tagged pointer which only contains the offset of the function. For memory alignment reasons, some of the least significant bits of a valid pointer will always be zero, so we set the least significant bit to one in order to indicate that it's not an actual pointer, and right next to it we add the functions offset in the bytecode, shifted to left by one.
 
 *Real closure:* 0x00FFF13320<br/>
 *Fast closure:* 0x0000000321 *// the address is 0x0190 (0x0321 >> 1)*
 
-<small>As I wrote the previous paragraph I realised there's a bug: fast closures should also not contain nested closures, otherwise the parent scope will be polluted. The type checker should catch it nonetheless, but you can bypass it, but, well...</small>
+<small>*note: As I wrote the previous paragraph I realised there's a bug: fast closures should also not contain nested closures, otherwise the parent scope will be polluted. The type checker should catch it nonetheless, you could bypass it, but, well...*</small>
 
 ## Benchmarking
 
@@ -215,7 +214,7 @@ Verve, on [this commit\*][test-commit], takes `8.247s` on an *avg of 5 runs*.
 
 JSC, version *602.1.50*, with `JSC_useJIT=0` takes `14.558s` on an *avg of 5 runs*.
 
-Both were tested on a Early-2016 MacBook running macOS 10.12.
+Both were tested on an Early-2016 MacBook running macOS 10.12.
 
 *`*` This commit was picked as I stopped working on perf ever since. Lately I've been having more fun with making it a better language, with proper type checking instead.*
 
