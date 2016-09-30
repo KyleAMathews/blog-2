@@ -1,8 +1,9 @@
 ---
 layout: post
 title: "Optimisations in Verve"
-date: 2016-09-29 20:47:06
+date: 2016-09-30 10:47:06
 description: Premature optimisations for fun!
+image: '/assets/img/verve-logo.png'
 tags:
 - verve
 - x86
